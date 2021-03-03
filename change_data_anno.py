@@ -1,3 +1,6 @@
+import os
+import json
+import cv2
 import detectron2
 from detectron2.utils.logger import setup_logger
 setup_logger()
@@ -21,74 +24,66 @@ import cv2
 import json
 from detectron2.structures import BoxMode
 
-train_dir = './data/dataset/car_train'
-
+from pprint import pprint
 target_classes = [
-    "Car",
-    "SUV",
-    "Van",
-    "Truck",
-    "SpecialCar",
+    "Vehicle",
     "LicensePlate",
-    "Person",
-    "Motorcycle"
+    "Person"
 ]
+
+img_dir = './data/dataset/car_train'
+json_file = os.path.join(img_dir, "c_car_train.json")
+
+if not os.path.isfile(json_file):
+    json_file = os.path.join(img_dir, "car_val.json")
+
+
 def get_car_dicts(img_dir):
     global count
+
     font = cv2.FONT_HERSHEY_SIMPLEX
-    json_file = os.path.join(img_dir, "car_train.json")
+    json_file = os.path.join(img_dir, "c_car_train.json")
+
     if not os.path.isfile(json_file):
         json_file = os.path.join(img_dir, "car_val.json")
 
-    with open(json_file,encoding='UTF8') as f:
+    with open(json_file, encoding='UTF8') as f:
         imgs_anns = json.load(f)
 
-    dataset_dicts = []
-    print('totla_imgs',len(imgs_anns))
-    for idx, v in enumerate(imgs_anns):
-        record = {}
+        dataset_dicts = []
+        for idx, v in enumerate(imgs_anns):
+            record = {}
 
-        filename = os.path.join("/".join(json_file.split('/')[:-1]), v["filename"])
-        height, width = v['height'], v['width']
-        record["file_name"] = filename
-        record["image_id"] = idx
-        record["height"] = int(height)
-        record["width"] = int(width)
+            filename = os.path.join("/".join(json_file.split('/')[:-1]), v["filename"])
+            height, width = v['height'], v['width']
+            record["file_name"] = filename
+            record["image_id"] = idx
+            record["height"] = int(height)
+            record["width"] = int(width)
+            # temp = cv2.imread(filename)
+            objs = []
+            annos = v["ann"]
+            annos['labels']=[1 if i > 0 and i < 6 else 2 if i == 6 else 3 if i == 7 else 1 if i == 8 else None for i in annos['labels']]
+            for i, bbox in enumerate(annos['bboxes']):
+                obj = {
+                    "bbox": [bbox[0], bbox[1], bbox[2], bbox[3]],
+                    "bbox_mode": BoxMode.XYXY_ABS,
+                    "category_id": annos['labels'][i] - 1,
+                }
+                # temp = cv2.rectangle(temp, tuple(obj['bbox'][:2]), tuple(obj['bbox'][2:4]), (255, 0, 0), thickness=3)
+                # temp = cv2.putText(temp, str(obj['category_id']) + target_classes[obj['category_id']], tuple(obj['bbox'][:2]), font, 2, (255, 255, 255), 2)
+            # temp = cv2.resize(temp, dsize=(640, 480), interpolation=cv2.INTER_AREA)
+            # cv2.imshow('123', temp)
+            objs.append(obj)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
+            record["annotations"] = objs
+            dataset_dicts.append(record)
 
-        annos = v["ann"]
+        return dataset_dicts
 
-        objs = []
-        print(filename)
-        print(annos)
-        temp =cv2.imread(filename)
-        print(annos)
-
-        for i, bbox in enumerate(annos['bboxes']):
-            # if annos['labels'][i]-1 == 7:
-            #     continue
-            # if annos['labels'][i]-1==8:
-            #     print(annos['labels'])
-            obj = {
-                "bbox": [bbox[0], bbox[1], bbox[2], bbox[3]],
-                "bbox_mode": BoxMode.XYXY_ABS,
-                "category_id": annos['labels'][i]-1,
-            }
-            temp = cv2.rectangle(temp,tuple(obj['bbox'][:2]),tuple(obj['bbox'][2:4]),(255,0,0),thickness=3)
-            # temp = cv2.putText(temp,str(annos['labels'][i]) , obj['bbox'][:2], cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 1, (0, 255, 0))
-            temp = cv2.putText(temp, str(obj['category_id'])+target_classes[obj['category_id']], tuple(obj['bbox'][:2]), font, 2, (255, 255, 255), 2)
-            print(obj['bbox'][:2])
-            exit()
-        temp = cv2.resize(temp, dsize=(640, 480), interpolation=cv2.INTER_AREA)
-        cv2.imshow('123',temp)
-        objs.append(obj)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        record["annotations"] = objs
-        dataset_dicts.append(record)
-    return dataset_dicts
 
 get_car_dicts('./data/dataset/car_train')
-exit()
 for d in ['train','val']:
     DatasetCatalog.register("car_"+ d,lambda d=d:get_car_dicts('./data/dataset/car_'+d))
     MetadataCatalog.get("car_"+d).set(thing_classes=target_classes)
@@ -134,6 +129,7 @@ def main(train):
                        scale=0.7,
                        instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
         )
+        print(outputs['instances'])
         out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
         cv2.imshow('hello',out.get_image()[:, :, ::-1])
         cv2.waitKey(0)
@@ -145,6 +141,9 @@ def main(train):
     print(inference_on_dataset(trainer.model, val_loader, evaluator))
     # another equivalent way to evaluate the model is to use `trainer.test`
     return
+
+
+
 if __name__ == "__main__":
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -156,23 +155,3 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(True,),
     )
-
-
-# cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
-# cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7   # set a custom testing threshold
-# predictor = DefaultPredictor(cfg)
-#
-# from detectron2.utils.visualizer import ColorMode
-#
-# dataset_dicts = get_car_dicts("./data/dataset/car_val")
-# for d in random.sample(dataset_dicts, 3):
-#     im = cv2.imread(d["file_name"])
-#     outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
-#     v = Visualizer(im[:, :, ::-1],
-#                    metadata=wheat_metadata,
-#                    scale=0.5,
-#                    instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
-#     )
-#     out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-#     cv2.imshow('hello',out.get_image()[:, :, ::-1])
-#     cv2.waitKey(0)
