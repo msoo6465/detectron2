@@ -34,8 +34,8 @@ target_classes = [
     "Motorcycle"
 ]
 def get_car_dicts(img_dir):
-    global count
     font = cv2.FONT_HERSHEY_SIMPLEX
+
     json_file = os.path.join(img_dir, "car_train.json")
     if not os.path.isfile(json_file):
         json_file = os.path.join(img_dir, "car_val.json")
@@ -58,10 +58,8 @@ def get_car_dicts(img_dir):
         annos = v["ann"]
 
         objs = []
-        print(filename)
-        print(annos)
         temp =cv2.imread(filename)
-        print(annos)
+
 
         for i, bbox in enumerate(annos['bboxes']):
             # if annos['labels'][i]-1 == 7:
@@ -73,22 +71,21 @@ def get_car_dicts(img_dir):
                 "bbox_mode": BoxMode.XYXY_ABS,
                 "category_id": annos['labels'][i]-1,
             }
-            temp = cv2.rectangle(temp,tuple(obj['bbox'][:2]),tuple(obj['bbox'][2:4]),(255,0,0),thickness=3)
-            # temp = cv2.putText(temp,str(annos['labels'][i]) , obj['bbox'][:2], cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 1, (0, 255, 0))
-            temp = cv2.putText(temp, str(obj['category_id'])+target_classes[obj['category_id']], tuple(obj['bbox'][:2]), font, 2, (255, 255, 255), 2)
-            print(obj['bbox'][:2])
-            exit()
-        temp = cv2.resize(temp, dsize=(640, 480), interpolation=cv2.INTER_AREA)
-        cv2.imshow('123',temp)
+        #     temp = cv2.rectangle(temp,tuple(obj['bbox'][:2]),tuple(obj['bbox'][2:4]),(255,0,0),thickness=3)
+        #     # temp = cv2.putText(temp,str(annos['labels'][i]) , obj['bbox'][:2], cv2.FONT_HERSHEY_SCRIPT_SIMPLEX, 1, (0, 255, 0))
+        #     temp = cv2.putText(temp, str(obj['category_id'])+target_classes[obj['category_id']], tuple(obj['bbox'][:2]), font, 2, (255, 255, 255), 2)
+        #
+        # temp = cv2.resize(temp, dsize=(640, 480), interpolation=cv2.INTER_AREA)
+        # cv2.imshow('123',temp)
         objs.append(obj)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.waitKey(0)
+
         record["annotations"] = objs
         dataset_dicts.append(record)
+    cv2.destroyAllWindows()
     return dataset_dicts
 
 get_car_dicts('./data/dataset/car_train')
-exit()
 for d in ['train','val']:
     DatasetCatalog.register("car_"+ d,lambda d=d:get_car_dicts('./data/dataset/car_'+d))
     MetadataCatalog.get("car_"+d).set(thing_classes=target_classes)
@@ -115,10 +112,11 @@ def main(train):
         os.makedirs(cfg.OUTPUT_DIR,exist_ok=True)
         trainer = DefaultTrainer(cfg)
         trainer.resume_or_load(resume=True)
+
         try:
             trainer.train()
-        except:
-            print(count)
+        except Exception as e:
+            print(e)
     cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_final.pth")  # path to the model we just trained
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5   # set a custom testing threshold
     predictor = DefaultPredictor(cfg)
@@ -154,7 +152,6 @@ if __name__ == "__main__":
         num_machines=1,
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,
-        args=(True,),
     )
 
 

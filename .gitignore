@@ -2,6 +2,13 @@
 output
 instant_test_output
 inference_test_output
+output_OLD
+Out_result
+data
+pretrain
+R_50_FPN_1x_result
+CAR_R_101_FPN
+
 
 
 *.png
