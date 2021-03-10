@@ -1,0 +1,26 @@
+_BASE_: "../Base-RCNN-C4.yaml"
+MODEL:
+  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl" # '/home/bong20/lib/detectron2_nano/nano_0105/model_final.pth'
+  MASK_ON: False
+    RESNETS:
+      DEPTH: 50
+    ROI_HEADS:
+      NUM_CLASSES: 3
+#  INPUT:
+#    MIN_SIZE_TRAIN: (270, 306, 360, 396, 450, 540)
+#    MIN_SIZE_TRAIN_SAMPLING: "choice"
+#    MIN_SIZE_TEST: 360
+#    MAX_SIZE_TRAIN: 960
+#    MAX_SIZE_TEST: 640
+  #  CROP:
+  #    ENABLED: True
+  DATASETS:
+    TRAIN: ("car_train",)
+    TEST: ("2020_val",)
+  SOLVER:
+    STEPS: (25000, 30000)
+    MAX_ITER: 40000
+    IMS_PER_BATCH: 18
+    BASE_LR: 0.02
+    CHECKPOINT_PERIOD: 5000
+  OUTPUT_DIR: "./nano_0105"
