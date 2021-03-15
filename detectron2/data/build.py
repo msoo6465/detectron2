@@ -140,6 +140,8 @@ def load_proposals_into_dataset(dataset_dicts, proposal_file):
     bbox_mode = BoxMode(proposals["bbox_mode"]) if "bbox_mode" in proposals else BoxMode.XYXY_ABS
 
     for record in dataset_dicts:
+        print(record)
+        print(id_to_index)
         # Get the index of the proposal
         i = id_to_index[str(record["image_id"])]
 

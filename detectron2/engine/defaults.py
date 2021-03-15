@@ -133,6 +133,8 @@ def default_setup(cfg, args):
 
     logger.info("Command line arguments: " + str(args))
     if hasattr(args, "config_file") and args.config_file != "":
+        args.config_file = '/home/bong08/lib/ms/detectron2/detectron2/model_zoo/configs/COCO-Detection/car_faster_rcnn_R_50_FPN_1x.yaml'
+        print(args.config_file,'=======================================================')
         logger.info(
             "Contents of args.config_file={}:\n{}".format(
                 args.config_file, PathManager.open(args.config_file, "r").read()
