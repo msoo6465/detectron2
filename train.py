@@ -60,6 +60,9 @@ from detectron2.utils.events import (
     JSONWriter,
     TensorboardXWriter,
 )
+from detectron2.structures import BoxMode
+from detectron2.utils.visualizer import Visualizer
+from detectron2.engine import DefaultPredictor
 
 logger = logging.getLogger("detectron2")
 
@@ -112,6 +115,7 @@ def get_car_dicts(img_dir):
         # cv2.destroyAllWindows()
 
         return dataset_dicts
+
 def data_register():
     for d in ['train','val']:
         DatasetCatalog.register("car_"+ d,lambda d=d:get_car_dicts('./data/dataset/car_'+d))
@@ -168,12 +172,30 @@ def get_evaluator(cfg, dataset_name, output_folder=None):
 
 
 def do_test(cfg, model):
+    import random
     results = OrderedDict()
     for dataset_name in cfg.DATASETS.TEST:
         data_loader = build_detection_test_loader(cfg, dataset_name)
-        evaluator = get_evaluator(
-            cfg, dataset_name, os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-        )
+        # evaluator = get_evaluator(
+        #     cfg, dataset_name, os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
+        # )
+        from detectron2.utils.visualizer import ColorMode
+        predictor = DefaultPredictor(cfg)
+        dataset_dicts = get_car_dicts("./data/dataset/car_val")
+        for d in random.sample(dataset_dicts, 10):
+            im = cv2.imread(d["file_name"])
+            outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
+            v = Visualizer(im[:, :, ::-1],
+                           metadata=MetadataCatalog.get("car_val"),
+                           scale=0.7,
+                           instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
+            )
+            out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+            cv2.imshow('hello',out.get_image()[:, :, ::-1])
+            cv2.waitKey(0)
+
+        cv2.destroyAllWindows()
+        evaluator = COCOEvaluator("car_val", None, False, output_dir="./output/2021_03_12")
         results_i = inference_on_dataset(model, data_loader, evaluator)
         results[dataset_name] = results_i
         if comm.is_main_process():
@@ -258,7 +280,7 @@ def setup(args):
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
     cfg.merge_from_list(args.opts)
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml")
+    # cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml")
     cfg.freeze()
     default_setup(
         cfg, args

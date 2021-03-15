@@ -108,6 +108,8 @@ cfg.SOLVER.CHECKPOINT_PERIOD = 3000
 # cfg.MODEL.WEIGHTS = os.path.join(cfg.OUTPUT_DIR, "model_0073999.pth")  # path to the model we just trained
 
 def main(train):
+    print(cfg)
+    exit()
     if train:
         from detectron2.engine import DefaultTrainer
 
@@ -126,18 +128,18 @@ def main(train):
     from detectron2.utils.visualizer import ColorMode
 
     dataset_dicts = get_car_dicts("./data/dataset/car_val")
-    # for d in random.sample(dataset_dicts, 10):
-    #     im = cv2.imread(d["file_name"])
-    #     outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
-    #     v = Visualizer(im[:, :, ::-1],
-    #                    metadata=car_metadata,
-    #                    scale=0.7,
-    #                    instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
-    #     )
-    #     out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
-    #     cv2.imshow('hello',out.get_image()[:, :, ::-1])
-    #     cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    for d in random.sample(dataset_dicts, 10):
+        im = cv2.imread(d["file_name"])
+        outputs = predictor(im)  # format is documented at https://detectron2.readthedocs.io/tutorials/models.html#model-output-format
+        v = Visualizer(im[:, :, ::-1],
+                       metadata=car_metadata,
+                       scale=0.7,
+                       instance_mode=ColorMode.IMAGE_BW   # remove the colors of unsegmented pixels. This option is only available for segmentation models
+        )
+        out = v.draw_instance_predictions(outputs["instances"].to("cpu"))
+        cv2.imshow('hello',out.get_image()[:, :, ::-1])
+        cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     from detectron2.evaluation import COCOEvaluator, inference_on_dataset
     from detectron2.data import build_detection_test_loader
